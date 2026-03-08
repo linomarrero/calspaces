@@ -75,7 +75,7 @@ export default function Waitlist() {
             )}
             {count !== null && (
               <p className="mt-4 font-mono text-xs text-foreground/50">
-                {count.toLocaleString()} people ahead of you.
+                {(count + 100).toLocaleString()} people ahead of you.
               </p>
             )}
             <p className="mt-2 font-body text-xs text-amber-800/90">
