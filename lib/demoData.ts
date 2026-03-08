@@ -187,13 +187,58 @@ function normalizeForPreset(s: string): string {
   return s.trim().replace(/\s+/g, " ");
 }
 
+function resolveOverlaps(tasks: DemoTask[]): DemoTask[] {
+  const toMins = (t: string) => {
+    const [h, m] = t.split(":").map(Number);
+    return h * 60 + m;
+  };
+  const toTime = (mins: number) => {
+    const h = Math.floor(mins / 60).toString().padStart(2, "0");
+    const m = (mins % 60).toString().padStart(2, "0");
+    return `${h}:${m}`;
+  };
+
+  const sorted = [...tasks].sort((a, b) => toMins(a.start) - toMins(b.start));
+  const resolved: DemoTask[] = [];
+
+  for (const task of sorted) {
+    let start = toMins(task.start);
+    const duration = task.estimatedMinutes;
+
+    let latestEnd = 0;
+    for (const placed of resolved) {
+      const placedStart = toMins(placed.start);
+      const placedEnd = toMins(placed.end);
+      if (start < placedEnd && start + duration > placedStart) {
+        latestEnd = Math.max(latestEnd, placedEnd);
+      }
+    }
+
+    if (latestEnd > 0) {
+      start = latestEnd + 15;
+    }
+
+    if (start + duration > 1320) {
+      start = Math.max(420, 1320 - duration);
+    }
+
+    resolved.push({
+      ...task,
+      start: toTime(start),
+      end: toTime(start + duration),
+    });
+  }
+
+  return resolved;
+}
+
 export function scheduleFromTranscript(transcript: string): DemoTask[] {
   const normalized = normalizeForPreset(transcript);
   for (const scenario of SCENARIOS) {
     if (normalizeForPreset(scenario.transcript) === normalized) {
       const preset = PRESET_SCHEDULES[scenario.id];
-      if (preset) return preset.map((t, i) => ({ ...t, id: `t-${i + 1}` }));
+      if (preset) return resolveOverlaps(preset.map((t, i) => ({ ...t, id: `t-${i + 1}` })));
     }
   }
-  return extractAndSchedule(transcript);
+  return resolveOverlaps(extractAndSchedule(transcript));
 }

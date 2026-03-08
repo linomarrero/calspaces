@@ -214,7 +214,7 @@ export default function Demo() {
                 className="absolute left-12 right-2 rounded-sm overflow-hidden border-l-[3px] cursor-pointer hover:brightness-110 transition-[filter]"
                 style={{
                   top,
-                  height: Math.max(28, height),
+                  height: Math.max(40, height),
                   background: style.bg,
                   borderColor: style.border,
                   opacity: isDone ? 0.4 : 1,
@@ -301,19 +301,21 @@ export default function Demo() {
           <label className="font-mono text-[10px] uppercase tracking-widest text-foreground/50 block mb-1.5">
             BRAIN DUMP TRANSCRIPT
           </label>
-          <textarea
-            value={transcriptDisplay}
-            onChange={(e) => {
-              const v = e.target.value;
-              setTranscriptDisplay(v);
-              setTranscript(v);
-              setProcessed(false);
-            }}
-            rows={8}
-            placeholder="Just talk. Drop everything here — deadlines, errands, appointments, things you've been putting off. Don't organize it, that's our job."
-            className="w-full font-mono text-[13px] bg-[#F5F2EC] border border-near-black/20 rounded-[2px] p-3 resize-y focus:outline-none focus:border-near-black/40 placeholder:text-foreground/40"
-            spellCheck={false}
-          />
+          <div className="relative">
+            <textarea
+              readOnly
+              value={transcriptDisplay}
+              rows={8}
+              className="w-full font-mono text-[13px] bg-[#E8E4DC] border border-near-black/20 rounded-[2px] p-3 resize-none focus:outline-none focus:border-near-black/40 overflow-y-auto opacity-85 cursor-default"
+              spellCheck={false}
+              aria-label="Brain dump transcript (read-only)"
+            />
+            {!transcriptDisplay && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none font-mono text-[12px] text-foreground/50 text-center px-4">
+                ← Select a scenario to see a sample brain dump.
+              </div>
+            )}
+          </div>
         </div>
 
         <button
