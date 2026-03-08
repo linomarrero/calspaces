@@ -26,6 +26,7 @@ export default function Nav() {
         scrolled ? "bg-linen/80 backdrop-blur-md border-b border-warm-gray/60" : "bg-transparent"
       }`}
     >
+<<<<<<< HEAD
       <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-5 md:px-8">
         <Link href="/">
           <img
@@ -53,19 +54,50 @@ export default function Nav() {
             className="inline-block bg-accent text-white font-body text-sm font-medium px-5 py-2.5 rounded-sharp hover:opacity-90 transition-opacity"
           >
             Get Early Access
+=======
+      <nav className="w-full">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-5 md:px-8">
+          <Link href="/" className="flex items-center">
+            <img
+              src="/calspaceslogofull.svg"
+              alt="CalSpaces"
+              style={{ height: "32px", width: "auto" }}
+            />
+>>>>>>> 438658c (Hero phone animation, waitlist API, deprecation fixes)
           </Link>
-        </div>
 
-        <button
-          type="button"
-          aria-label="Menu"
-          className="md:hidden p-2 text-near-black"
-          onClick={() => setOpen(true)}
-        >
-          <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-          </svg>
-        </button>
+          <div className="hidden md:flex items-center gap-10">
+            {navLinks.map(({ href, label }) => (
+              <Link
+                key={href}
+                href={href}
+                className="font-body text-sm font-medium text-foreground/80 hover:text-foreground transition-colors"
+              >
+                {label}
+              </Link>
+            ))}
+          </div>
+
+          <div className="hidden md:flex items-center">
+            <Link
+              href="#waitlist"
+              className="inline-block bg-accent text-white font-body text-sm font-medium px-5 py-2.5 rounded-sharp hover:opacity-90 transition-opacity"
+            >
+              Get Early Access
+            </Link>
+          </div>
+
+          <button
+            type="button"
+            aria-label="Menu"
+            className="md:hidden p-2 text-near-black"
+            onClick={() => setOpen(true)}
+          >
+            <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+            </svg>
+          </button>
+        </div>
       </nav>
 
       <AnimatePresence>
