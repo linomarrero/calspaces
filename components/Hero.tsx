@@ -22,11 +22,11 @@ const CYCLE_MS = RESET_START_MS + 5 * RESET_ROW_STAGGER_MS + RESET_ROW_FADE_MS +
 const TYPING_MS_PER_CHAR = 40;
 
 const PHONE_TASKS = [
-  { label: "9:00 — Review Bio", meta: "Mon · 90 min", tag: "FOCUS", accent: "#1A3C2B" },
-  { label: "10:30 — Chem report", meta: "Tue · 2 hrs", tag: "FOCUS", accent: "#1A3C2B" },
-  { label: "2:00 — Gym", meta: "Wed · 1 hr", tag: "HEALTH", accent: "#4A6741" },
-  { label: "4:00 — Café catch-up", meta: "Thu · 45 min", tag: "LEISURE", accent: "#C8962A" },
-  { label: "6:30 — Reply to emails", meta: "Fri · 30 min", tag: "ADMIN", accent: "#555555" },
+  { label: "9:00 — Review Bio", meta: "Mon · 90 min", tag: "FOCUS", accent: "#2D6B47" },
+  { label: "10:30 — Chem report", meta: "Tue · 2 hrs", tag: "FOCUS", accent: "#2D6B47" },
+  { label: "2:00 — Gym", meta: "Wed · 1 hr", tag: "HEALTH", accent: "#5C8A52" },
+  { label: "4:00 — Café catch-up", meta: "Thu · 45 min", tag: "LEISURE", accent: "#D4A040" },
+  { label: "6:30 — Reply to emails", meta: "Fri · 30 min", tag: "ADMIN", accent: "#888888" },
 ];
 
 export default function Hero() {
@@ -94,7 +94,7 @@ export default function Hero() {
         >
           <div className="relative w-[280px] sm:w-[320px]">
             <div className="aspect-[9/19] rounded-[28px] bg-near-black/95 shadow-2xl border border-foreground/10 overflow-hidden">
-              <div className="p-5 h-full flex flex-col">
+              <div className="h-full flex flex-col bg-[#1A1A18]">
                 <PhoneScreenContent />
               </div>
             </div>
@@ -200,43 +200,60 @@ function PhoneScreenContent() {
 
   return (
     <div className="flex-1 min-h-0 flex flex-col">
-      {/* Zone 1 — Task list ~65% */}
-      <div className="flex-[0.65] min-h-0 flex flex-col overflow-hidden">
-        <div className="flex items-center justify-between px-1 pt-0.5 pb-1 shrink-0">
-          <span className="font-mono text-[10px] text-white/35 uppercase tracking-widest">
+      {/* Zone 1 — Task list 60% */}
+      <div className="flex-[0.6] min-h-0 flex flex-col overflow-hidden px-4 py-3.5" style={{ padding: "14px 16px" }}>
+        <div className="flex items-center justify-between shrink-0 mb-3">
+          <span className="font-mono text-[10px] uppercase tracking-widest text-white/40">
             YOUR WEEK
           </span>
           <span className="font-mono text-[10px] text-white/35">···</span>
         </div>
-        <div className="flex-1 min-h-0 overflow-auto">
+        <div className="flex-1 min-h-0 overflow-auto flex flex-col gap-2.5" style={{ gap: 10 }}>
           {PHONE_TASKS.slice(0, visibleTaskCount).map((task, i) => (
             <motion.div
               key={task.label}
               className="flex items-center gap-2 border-b border-white/5"
-              style={{ minHeight: 44, padding: "10px 12px" }}
+              style={{
+                minHeight: 52,
+                padding: "10px 0",
+                gap: 10,
+              }}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: rowOpacity(i), y: 0 }}
               transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
             >
               <motion.div
-                className="w-[2.5px] self-stretch rounded-full shrink-0"
+                className="shrink-0 self-stretch rounded-sm"
                 style={{
+                  width: 4,
                   backgroundColor: task.accent,
                   transformOrigin: "top",
+                  minHeight: 36,
                 }}
                 initial={{ scaleY: 0 }}
                 animate={{ scaleY: 1 }}
                 transition={{ duration: 0.25 }}
               />
               <div className="min-w-0 flex-1">
-                <p className="font-body text-[13px] font-bold text-white/90 truncate">
+                <p
+                  className="font-body font-semibold truncate"
+                  style={{ fontSize: 14, color: "rgba(255,255,255,0.92)" }}
+                >
                   {task.label}
                 </p>
-                <p className="font-mono text-[10px] text-white/30">{task.meta}</p>
+                <p className="font-mono text-white/50 mt-0.5" style={{ fontSize: 11 }}>
+                  {task.meta}
+                </p>
               </div>
               <span
-                className="font-mono text-[9px] uppercase shrink-0 border rounded-[2px] px-1.5 py-0.5"
-                style={{ borderColor: task.accent, color: task.accent }}
+                className="font-mono uppercase shrink-0 border rounded-[2px]"
+                style={{
+                  fontSize: 10,
+                  padding: "3px 7px",
+                  borderWidth: 1,
+                  borderColor: task.accent,
+                  color: task.accent,
+                }}
               >
                 {task.tag}
               </span>
@@ -244,9 +261,10 @@ function PhoneScreenContent() {
           ))}
           {visibleTaskCount >= 5 && (showScheduleReady || isReset) && (
             <motion.p
-              className="font-mono text-[10px] mt-2 px-2"
+              className="font-mono mt-2"
               style={{
-                color: "#1A3C2B",
+                fontSize: 10,
+                color: "#4CAF80",
                 opacity: scheduleReadyOpacity,
               }}
               initial={false}
@@ -259,24 +277,29 @@ function PhoneScreenContent() {
       </div>
 
       {/* Divider */}
-      <div className="h-px shrink-0 bg-white/[0.08]" />
+      <div className="h-px shrink-0 bg-white/[0.12]" />
 
-      {/* Zone 2 — Voice input ~35% */}
-      <div className="flex-[0.35] min-h-0 flex flex-col justify-end py-3">
-        <div className="font-mono text-[10px] text-white/60 uppercase tracking-wider mb-2">
+      {/* Zone 2 — Voice input 40% */}
+      <div className="flex-[0.4] min-h-0 flex flex-col" style={{ padding: "14px 16px" }}>
+        <div
+          className="font-mono text-[10px] uppercase tracking-[0.12em] text-white/40 mb-2 shrink-0"
+        >
           Voice dump
         </div>
         <motion.div
-          className="flex items-end w-full mb-2"
-          style={{ opacity: waveformOpacity }}
+          className="flex items-end w-full mb-2 shrink-0"
+          style={{ opacity: waveformOpacity, minHeight: 32 }}
           transition={{ duration: 0.2 }}
         >
           <Waveform />
         </motion.div>
-        <div className="font-mono text-[11px] text-white/70 min-h-[1.25rem] flex items-center">
+        <div
+          className="font-mono text-white/80 min-h-[2.5rem] flex items-center flex-wrap"
+          style={{ fontSize: 12 }}
+        >
           {zone2Text}
           {showCursor && (
-            <span className="animate-cursor-blink inline-block ml-0.5 text-white/70">
+            <span className="animate-cursor-blink inline-block ml-0.5 text-white/80">
               ▋
             </span>
           )}
@@ -284,8 +307,8 @@ function PhoneScreenContent() {
             {showCheckmark && (
               <motion.span
                 key="added"
-                className="text-[10px]"
-                style={{ color: "#1A3C2B" }}
+                className="font-semibold"
+                style={{ color: "#4CAF80", fontSize: 11 }}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
@@ -302,16 +325,31 @@ function PhoneScreenContent() {
 }
 
 function Waveform() {
-  const bars = [0.3, 0.6, 0.45, 0.8, 0.5, 0.7, 0.4, 0.65, 0.55, 0.75, 0.5, 0.6];
+  const ratios = [0.3, 0.6, 0.45, 0.8, 0.5, 0.7, 0.4, 0.65, 0.55, 0.75, 0.5, 0.6];
+  const minH = 8;
+  const maxH = 32;
+  const toPx = (r: number) => minH + (maxH - minH) * r;
   return (
-    <div className="flex items-end gap-0.5 h-8 w-full">
-      {bars.map((h, idx) => (
+    <div
+      className="flex items-end w-full"
+      style={{ height: maxH, gap: 3 }}
+    >
+      {ratios.map((r, idx) => (
         <motion.div
           key={idx}
-          className="w-1 bg-amber/80 rounded-full"
-          animate={{ height: [`${h * 100}%`, `${(bars[(idx + 1) % bars.length]) * 100}%`, `${h * 100}%`] }}
+          className="rounded-full shrink-0"
+          style={{
+            width: 3,
+            backgroundColor: "#D4A040",
+          }}
+          animate={{
+            height: [
+              `${toPx(r)}px`,
+              `${toPx(ratios[(idx + 1) % ratios.length])}px`,
+              `${toPx(r)}px`,
+            ],
+          }}
           transition={{ duration: 0.8, repeat: Infinity, delay: idx * 0.05 }}
-          style={{ height: `${h * 100}%` }}
         />
       ))}
     </div>
