@@ -10,7 +10,7 @@ const headlineWords = "Your calendar, finally honest.".split(" ");
 const WAVEFORM_ONLY_MS = 1500;        // waveform plays alone before anything starts
 
 // Transcript types continuously at this speed
-const MS_PER_CHAR = 18;
+const MS_PER_CHAR = 36;
 
 // Tasks appear independently on their own schedule
 const FIRST_TASK_DELAY_MS = 1200;     // extra pause after typing begins before first task
