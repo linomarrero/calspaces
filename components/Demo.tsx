@@ -1,53 +1,112 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { createPortal } from "react-dom";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  SCENARIOS,
-  mockScheduleFromTranscript,
-  type DemoTask,
-  type TaskCategory,
-} from "@/lib/demoData";
+import { SCENARIOS, scheduleFromTranscript, type DemoTask, type TaskCategory } from "@/lib/demoData";
 
-const CATEGORY_STYLES: Record<
+const LINEN = "#F5F2EC";
+
+const BLOCK_STYLES: Record<
   TaskCategory,
-  { bg: string; border: string; text: string }
+  { bg: string; border: string }
 > = {
-  urgent: { bg: "bg-red-950/30", border: "border-red-800/50", text: "text-red-200" },
-  work: { bg: "bg-blue-950/30", border: "border-blue-800/50", text: "text-blue-200" },
-  personal: { bg: "bg-emerald-950/30", border: "border-emerald-800/50", text: "text-emerald-200" },
-  admin: { bg: "bg-zinc-700/30", border: "border-zinc-600/50", text: "text-zinc-300" },
+  FOCUS: { bg: "rgba(45,107,71,0.3)", border: "#2D6B47" },
+  HEALTH: { bg: "rgba(92,138,82,0.3)", border: "#5C8A52" },
+  LEISURE: { bg: "rgba(212,160,64,0.2)", border: "#D4A040" },
+  ADMIN: { bg: "rgba(120,120,120,0.2)", border: "#888" },
+  DEADLINE: { bg: "rgba(180,60,60,0.25)", border: "#B43C3C" },
 };
 
-const HOURS = Array.from({ length: 14 }, (_, i) => i + 7); // 7am–8pm
-const TOTAL_MINUTES = 14 * 60;
-const CALENDAR_HEIGHT = 420;
-const PX_PER_MIN = CALENDAR_HEIGHT / TOTAL_MINUTES;
+const HOURS = Array.from({ length: 16 }, (_, i) => i + 7);
+const GRID_START = 7;
+const GRID_END = 23;
+const TOTAL_MINUTES = (GRID_END - GRID_START) * 60;
+const PX_PER_HOUR = 60;
+const PX_PER_MIN = PX_PER_HOUR / 60;
 
-function timeToOffset(start: string): number {
+function timeToTop(start: string): number {
   const [h, m] = start.split(":").map(Number);
-  return ((h - 7) * 60 + m) * PX_PER_MIN;
+  return (h - GRID_START) * PX_PER_HOUR + m * PX_PER_MIN;
 }
 
 function durationPx(start: string, end: string): number {
   const [sh, sm] = start.split(":").map(Number);
   const [eh, em] = end.split(":").map(Number);
-  const min = (eh - sh) * 60 + (em - sm);
-  return Math.max(28, min * PX_PER_MIN);
+  return (eh - sh) * PX_PER_HOUR + (em - sm) * PX_PER_MIN;
+}
+
+function formatDisplayDate(d: Date): string {
+  const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  return `${days[d.getDay()]}, ${months[d.getMonth()]} ${d.getDate()}`;
+}
+
+function getCurrentTimeMinutes(): number {
+  const d = new Date();
+  return d.getHours() * 60 + d.getMinutes();
 }
 
 export default function Demo() {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [transcript, setTranscript] = useState(SCENARIOS[0].transcript);
+  const [transcript, setTranscript] = useState("");
+  const [transcriptDisplay, setTranscriptDisplay] = useState("");
+  const [activeScenarioId, setActiveScenarioId] = useState<string | null>(null);
   const [tasks, setTasks] = useState<DemoTask[]>([]);
   const [completed, setCompleted] = useState<Set<string>>(new Set());
+  const [processing, setProcessing] = useState(false);
+  const [processed, setProcessed] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
+  const [currentTimeMinutes, setCurrentTimeMinutes] = useState(getCurrentTimeMinutes);
+  const typewriterRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && fullscreen) setFullscreen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [fullscreen]);
+
+  useEffect(() => {
+    const t = setInterval(() => setCurrentTimeMinutes(getCurrentTimeMinutes()), 60 * 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  const fillTranscriptWithTypewriter = useCallback((target: string, msPerChar = 12) => {
+    if (typewriterRef.current) clearTimeout(typewriterRef.current);
+    setTranscript(target);
+    setTranscriptDisplay("");
+    let i = 0;
+    const run = () => {
+      if (i <= target.length) {
+        setTranscriptDisplay(target.slice(0, i));
+        i++;
+        typewriterRef.current = setTimeout(run, msPerChar);
+      } else {
+        typewriterRef.current = null;
+      }
+    };
+    run();
+  }, []);
+
+  const selectScenario = useCallback((s: (typeof SCENARIOS)[0]) => {
+    setActiveScenarioId(s.id);
+    setTasks([]);
+    setProcessed(false);
+    fillTranscriptWithTypewriter(s.transcript, 12);
+  }, [fillTranscriptWithTypewriter]);
 
   const process = useCallback(() => {
-    const result = mockScheduleFromTranscript(transcript);
-    setTasks(result);
-    setCompleted(new Set());
+    const text = transcript.trim();
+    if (!text) return;
+    setProcessing(true);
+    setProcessed(false);
+    setTimeout(() => {
+      const result = scheduleFromTranscript(text);
+      setTasks(result);
+      setCompleted(new Set());
+      setProcessed(true);
+      setProcessing(false);
+    }, 800);
   }, [transcript]);
 
   const toggleComplete = useCallback((id: string) => {
@@ -59,9 +118,156 @@ export default function Demo() {
     });
   }, []);
 
-  const content = (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
-      <div className="lg:col-span-5 space-y-6">
+  const statusMessage = !transcript.trim()
+    ? "Add something to schedule first."
+    : processing
+      ? "Extracting tasks and resolving conflicts..."
+      : processed
+        ? `✓ Successfully scheduled ${tasks.length} tasks`
+        : null;
+
+  const calendarContent = (
+    <div className="flex flex-col h-full min-h-[600px] bg-[#111109] rounded-sm overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 shrink-0">
+        <span className="font-mono text-[10px] uppercase tracking-widest text-white/45">YOUR DAY</span>
+        <span className="font-mono text-sm text-white/70">{formatDisplayDate(new Date())}</span>
+        <button
+          type="button"
+          className="font-mono text-[11px] px-3 py-1.5 border border-white/40 rounded-sm text-white/80 hover:bg-white/5 transition-colors"
+        >
+          Sync to Calendar
+        </button>
+      </div>
+      <div className="flex-1 min-h-0 overflow-auto relative" style={{ height: TOTAL_MINUTES * PX_PER_MIN + 40 }}>
+        <div className="relative pr-4 pb-4" style={{ minHeight: TOTAL_MINUTES * PX_PER_MIN }}>
+          {/* Time labels */}
+          <div className="sticky top-0 left-0 z-10 flex font-mono text-[11px] text-white/30 bg-[#111109] pb-1">
+            <div className="w-12 shrink-0" />
+            <div className="flex-1" />
+          </div>
+          {HOURS.map((h) => (
+            <div
+              key={h}
+              className="absolute left-0 right-0 font-mono text-[11px] text-white/30"
+              style={{ top: (h - GRID_START) * PX_PER_HOUR + 24 }}
+            >
+              <span className="absolute left-0 w-10">{h}:00</span>
+            </div>
+          ))}
+          {/* Grid lines */}
+          {HOURS.map((h) => (
+            <div
+              key={`full-${h}`}
+              className="absolute left-12 right-0 border-t border-white/[0.06]"
+              style={{ top: (h - GRID_START) * PX_PER_HOUR + 24 }}
+            />
+          ))}
+          {Array.from({ length: (GRID_END - GRID_START) * 2 - 1 }, (_, i) => i + 1).map((i) => {
+            const min = GRID_START * 60 + i * 30;
+            if (min >= GRID_END * 60) return null;
+            const top = (min / 60 - GRID_START) * PX_PER_HOUR + 24;
+            return (
+              <div
+                key={`half-${i}`}
+                className="absolute left-12 right-0 border-t border-white/[0.03]"
+                style={{ top }}
+              />
+            );
+          })}
+          {/* Current time indicator */}
+          {currentTimeMinutes >= GRID_START * 60 && currentTimeMinutes < GRID_END * 60 && (
+            <div
+              className="absolute left-12 right-0 z-20 flex items-center pointer-events-none"
+              style={{ top: (currentTimeMinutes / 60 - GRID_START) * PX_PER_HOUR + 24 }}
+            >
+              <div className="w-2 h-2 rounded-full bg-[#E05555] shrink-0 -ml-1" />
+              <div className="flex-1 h-px bg-[#E05555]" />
+            </div>
+          )}
+          {/* Empty state */}
+          {tasks.length === 0 && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center pt-12 text-white/40">
+              <div className="font-mono text-xs mb-6">Your schedule will appear here.</div>
+              <div className="w-full max-w-sm space-y-3 px-12">
+                {[0, 1, 2].map((i) => (
+                  <div
+                    key={i}
+                    className="h-14 rounded-sm bg-white/5 animate-pulse"
+                    style={{
+                      width: `${60 + i * 15}%`,
+                      marginLeft: `${i * 8}%`,
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+          {/* Task blocks */}
+          {tasks.map((task, i) => {
+            const top = timeToTop(task.start) + 24;
+            const height = durationPx(task.start, task.end);
+            const style = BLOCK_STYLES[task.category];
+            const isDone = completed.has(task.id);
+            return (
+              <motion.div
+                key={task.id}
+                className="absolute left-12 right-2 rounded-sm overflow-hidden border-l-[3px] cursor-pointer hover:brightness-110 transition-[filter]"
+                style={{
+                  top,
+                  height: Math.max(28, height),
+                  background: style.bg,
+                  borderColor: style.border,
+                  opacity: isDone ? 0.4 : 1,
+                }}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.28, ease: [0.25, 0.1, 0.25, 1], delay: i * 0.12 }}
+              >
+                <div className="p-2 h-full flex flex-col text-left">
+                  <div className="flex items-start justify-between gap-1">
+                    <span
+                      className="font-body text-[13px] font-semibold text-white/90 truncate flex-1"
+                      style={isDone ? { textDecoration: "line-through" } : undefined}
+                    >
+                      {task.title}
+                    </span>
+                    <span
+                      className="font-mono text-[9px] uppercase shrink-0 border rounded-[2px] px-1 py-0.5"
+                      style={{ borderColor: style.border, color: style.border }}
+                    >
+                      {task.category}
+                    </span>
+                  </div>
+                  <span className="font-mono text-[11px] text-white/50 mt-0.5">
+                    {task.start} – {task.end} · {task.estimatedMinutes}m
+                  </span>
+                  <div className="mt-auto pt-1 flex justify-end">
+                    <label
+                      className="flex items-center gap-1 font-mono text-[9px] text-white/60 cursor-pointer"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isDone}
+                        onChange={() => toggleComplete(task.id)}
+                        className="rounded border-white/40"
+                      />
+                      Done
+                    </label>
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+
+  const mainContent = (
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+      {/* Left panel */}
+      <div className="lg:col-span-5 max-w-[480px] lg:max-w-none space-y-4">
         <div>
           <p className="font-mono text-xs uppercase tracking-widest text-foreground/50 mb-2">
             Live demo
@@ -79,14 +285,11 @@ export default function Demo() {
             <button
               key={s.id}
               type="button"
-              onClick={() => {
-                setTranscript(s.transcript);
-                setTasks([]);
-              }}
-              className={`font-body text-sm px-4 py-2 rounded-sharp border transition-colors ${
-                transcript === s.transcript
-                  ? "bg-accent text-white border-accent"
-                  : "bg-surface border-foreground/20 hover:border-foreground/40 text-foreground"
+              onClick={() => selectScenario(s)}
+              className={`font-body text-sm px-4 py-2 rounded-[2px] border transition-colors ${
+                activeScenarioId === s.id
+                  ? "bg-[#1A3C2B] text-white border-[#1A3C2B]"
+                  : "bg-transparent border-near-black/30 text-near-black hover:border-near-black/50"
               }`}
             >
               {s.label}
@@ -94,15 +297,21 @@ export default function Demo() {
           ))}
         </div>
 
-        <div className="rounded-sharp border border-foreground/15 bg-surface/50 overflow-hidden">
-          <div className="font-mono text-[10px] uppercase tracking-wider text-foreground/50 px-3 py-2 border-b border-foreground/10">
-            Brain dump transcript
-          </div>
+        <div>
+          <label className="font-mono text-[10px] uppercase tracking-widest text-foreground/50 block mb-1.5">
+            BRAIN DUMP TRANSCRIPT
+          </label>
           <textarea
-            value={transcript}
-            onChange={(e) => setTranscript(e.target.value)}
-            className="w-full h-48 font-mono text-sm text-foreground bg-transparent p-3 resize-none focus:outline-none"
-            placeholder="Paste or type a brain dump..."
+            value={transcriptDisplay}
+            onChange={(e) => {
+              const v = e.target.value;
+              setTranscriptDisplay(v);
+              setTranscript(v);
+              setProcessed(false);
+            }}
+            rows={8}
+            placeholder="Just talk. Drop everything here — deadlines, errands, appointments, things you've been putting off. Don't organize it, that's our job."
+            className="w-full font-mono text-[13px] bg-[#F5F2EC] border border-near-black/20 rounded-[2px] p-3 resize-y focus:outline-none focus:border-near-black/40 placeholder:text-foreground/40"
             spellCheck={false}
           />
         </div>
@@ -110,45 +319,41 @@ export default function Demo() {
         <button
           type="button"
           onClick={process}
-          className="w-full font-body text-sm font-medium bg-accent text-white py-3 rounded-sharp hover:opacity-90 transition-opacity"
+          disabled={processing || !transcript.trim()}
+          className="w-full font-body text-sm font-medium bg-[#1A3C2B] text-white py-3 rounded-sharp hover:opacity-90 disabled:opacity-50 transition-opacity"
         >
-          Process this →
+          {processing ? (
+            <span className="inline-flex items-center">
+              Scheduling
+              <span className="inline-block w-3 text-left animate-pulse">...</span>
+            </span>
+          ) : (
+            "Process this →"
+          )}
         </button>
-      </div>
 
-      <div className="lg:col-span-7">
-        <div className="rounded-sharp border border-foreground/15 bg-near-black/95 overflow-hidden min-h-[400px]">
-          <div className="font-mono text-[10px] uppercase tracking-wider text-white/50 px-4 py-2 border-b border-white/10">
-            Your day
-          </div>
-          <div className="p-4">
-            <CalendarView
-              tasks={tasks}
-              completed={completed}
-              onTaskClick={setSelectedId}
-              onToggleComplete={toggleComplete}
-            />
-          </div>
-        </div>
-      </div>
-
-      {typeof document !== "undefined" &&
-        createPortal(
-          <AnimatePresence>
-            {selectedId && (
-              <TaskPopover
-                task={tasks.find((t) => t.id === selectedId)}
-                onClose={() => setSelectedId(null)}
-              />
-            )}
-          </AnimatePresence>,
-          document.body
+        {statusMessage && (
+          <p
+            className={`font-mono text-[11px] ${
+              !transcript.trim()
+                ? "text-red-600/80"
+                : processed
+                  ? "text-[#2D6B47]"
+                  : "text-foreground/50"
+            }`}
+          >
+            {statusMessage}
+          </p>
         )}
+      </div>
+
+      {/* Right panel */}
+      <div className="lg:col-span-7 min-h-[600px]">{calendarContent}</div>
     </div>
   );
 
   return (
-    <section id="demo" className="py-20 md:py-28 bg-linen relative">
+    <section id="demo" className="py-20 md:py-28 relative" style={{ background: LINEN }}>
       <button
         type="button"
         onClick={() => setFullscreen(true)}
@@ -157,7 +362,7 @@ export default function Demo() {
         Present fullscreen
       </button>
 
-      <div className="mx-auto max-w-7xl px-5 md:px-8">{content}</div>
+      <div className="mx-auto max-w-7xl px-5 md:px-8">{mainContent}</div>
 
       <AnimatePresence>
         {fullscreen && (
@@ -165,144 +370,23 @@ export default function Demo() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-linen p-6 overflow-auto"
+            className="fixed inset-0 z-50 bg-[#111109] flex flex-col"
           >
             <button
               type="button"
               onClick={() => setFullscreen(false)}
-              className="fixed top-4 right-4 font-mono text-sm text-foreground/70 hover:text-foreground z-10"
+              className="absolute top-4 right-4 z-10 w-8 h-8 flex items-center justify-center text-white/70 hover:text-white font-mono text-xl"
+              aria-label="Close"
             >
-              Close
+              ×
             </button>
-            <div className="max-w-7xl mx-auto pt-12">{content}</div>
+            <div className="flex-1 overflow-auto p-6">{calendarContent}</div>
+            <div className="absolute bottom-4 right-4 font-mono text-[10px] text-white/30">
+              CalSpaces
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
     </section>
-  );
-}
-
-function CalendarView({
-  tasks,
-  completed,
-  onTaskClick,
-  onToggleComplete,
-}: {
-  tasks: DemoTask[];
-  completed: Set<string>;
-  onTaskClick: (id: string) => void;
-  onToggleComplete: (id: string) => void;
-}) {
-  if (tasks.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-64 text-white/40 font-body text-sm">
-        Process a scenario to see your schedule.
-      </div>
-    );
-  }
-
-  return (
-    <div className="relative" style={{ height: CALENDAR_HEIGHT }}>
-      {/* Hour lines */}
-      {HOURS.map((h) => (
-        <div
-          key={h}
-          className="absolute left-0 right-0 border-t border-white/10 font-mono text-[10px] text-white/40"
-          style={{ top: (h - 7) * 60 * PX_PER_MIN }}
-        >
-          <span className="absolute -top-2.5 left-0">{h}:00</span>
-        </div>
-      ))}
-
-      {/* Task blocks */}
-      {tasks.map((task, i) => {
-        const top = timeToOffset(task.start);
-        const style = CATEGORY_STYLES[task.category];
-        return (
-          <motion.button
-            key={task.id}
-            type="button"
-            className={`absolute left-12 right-0 rounded-sm border px-2 py-1 text-left ${style.bg} ${style.border} ${style.text} hover:ring-1 hover:ring-white/30 transition-shadow ${
-              completed.has(task.id) ? "opacity-60 line-through" : ""
-            }`}
-            style={{
-              top,
-              minHeight: durationPx(task.start, task.end),
-            }}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.05 }}
-            onClick={() => onTaskClick(task.id)}
-          >
-            <div className="flex items-start justify-between gap-2">
-              <span className="font-body text-xs font-medium truncate">{task.title}</span>
-              <label
-                className="flex items-center gap-1 shrink-0"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <input
-                  type="checkbox"
-                  checked={completed.has(task.id)}
-                  onChange={() => onToggleComplete(task.id)}
-                  className="rounded border-white/30"
-                />
-                <span className="font-mono text-[10px]">Done</span>
-              </label>
-            </div>
-            <div className="font-mono text-[10px] text-white/60 mt-0.5">
-              {task.start} – {task.end} · {task.estimatedMinutes}m
-            </div>
-          </motion.button>
-        );
-      })}
-    </div>
-  );
-}
-
-function TaskPopover({
-  task,
-  onClose,
-}: {
-  task: DemoTask | undefined;
-  onClose: () => void;
-}) {
-  if (!task) return null;
-
-  const style = CATEGORY_STYLES[task.category];
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.96 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.96 }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40"
-      onClick={onClose}
-    >
-      <motion.div
-        className={`rounded-sharp border p-4 max-w-sm w-full shadow-xl ${style.bg} ${style.border} ${style.text}`}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h4 className="font-display text-lg font-semibold">{task.title}</h4>
-        <dl className="mt-3 font-mono text-xs space-y-1 text-white/80">
-          <div>
-            <dt className="text-white/50">Time</dt>
-            <dd>{task.start} – {task.end} ({task.estimatedMinutes} min)</dd>
-          </div>
-          {task.urgencyReason && (
-            <div>
-              <dt className="text-white/50">Why here</dt>
-              <dd>{task.urgencyReason}</dd>
-            </div>
-          )}
-        </dl>
-        <button
-          type="button"
-          onClick={onClose}
-          className="mt-4 font-body text-sm text-white/80 hover:text-white"
-        >
-          Close
-        </button>
-      </motion.div>
-    </motion.div>
   );
 }
