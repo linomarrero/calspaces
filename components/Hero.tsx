@@ -10,7 +10,7 @@ const headlineWords = "Your calendar, finally honest.".split(" ");
 const WAVEFORM_ONLY_MS = 1500;        // waveform plays alone before anything starts
 
 // Transcript types continuously at this speed
-const MS_PER_CHAR = 36;
+const MS_PER_CHAR = 18;
 
 // Tasks appear independently on their own schedule
 const FIRST_TASK_DELAY_MS = 1200;     // extra pause after typing begins before first task
@@ -51,7 +51,7 @@ const PHONE_TASKS = [
 // ── Hero ──────────────────────────────────────────────────────
 export default function Hero() {
   return (
-    <section className="relative min-h-[90vh] flex items-center pt-20 pb-16 px-5 md:px-8 overflow-x-hidden grain">
+    <section className="relative min-h-[90vh] flex items-center pt-20 pb-16 px-5 md:px-8 overflow-hidden grain">
       <div className="mx-auto max-w-7xl w-full grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
 
         {/* Left column */}
@@ -164,7 +164,7 @@ function PhoneScreenContent() {
   const [elapsed, setElapsed] = useState(0);
   const startRef = useRef<number>(0);
   const rafRef = useRef<number>(0);
-  const transcriptEndRef = useRef<HTMLDivElement>(null);
+  const transcriptContainerRef = useRef<HTMLDivElement>(null);
   const prevTotalCharsRef = useRef(0);
 
   // Main animation loop
@@ -261,7 +261,7 @@ function PhoneScreenContent() {
     ? 0.3
     : 1;
 
-  // Auto-scroll transcript
+  // Auto-scroll transcript — scroll only within the container, never the page
   const totalCharsVisible = TRANSCRIPT_LINES.reduce(
     (sum, _, i) => sum + transcriptCharsForLine(i),
     0
@@ -269,7 +269,8 @@ function PhoneScreenContent() {
   useEffect(() => {
     if (totalCharsVisible > prevTotalCharsRef.current) {
       prevTotalCharsRef.current = totalCharsVisible;
-      transcriptEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+      const el = transcriptContainerRef.current;
+      if (el) el.scrollTop = el.scrollHeight;
     }
     if (elapsed < 100) prevTotalCharsRef.current = 0;
   }, [totalCharsVisible, elapsed]);
@@ -377,6 +378,7 @@ function PhoneScreenContent() {
 
         {/* Transcript */}
         <div
+          ref={transcriptContainerRef}
           className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden"
           style={{ opacity: transcriptOpacity, transition: "opacity 0.4s" }}
         >
@@ -403,7 +405,6 @@ function PhoneScreenContent() {
                 </div>
               );
             })}
-            <div ref={transcriptEndRef} />
           </div>
         </div>
       </div>
