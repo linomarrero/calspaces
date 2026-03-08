@@ -21,7 +21,7 @@ const steps = [
   {
     num: "04",
     title: "It gets smarter",
-    body: "Your real patterns feed back into the model. Over time, CalSpaces helps you optimize your day and earn back your time!",
+    body: "Your real patterns feed back into the model. Over time, CalSpaces helps you optimize your day and regain wasted time!",
   },
 ];
 
