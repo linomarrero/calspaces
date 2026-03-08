@@ -31,10 +31,11 @@ export const metadata: Metadata = {
     icon: "/favicon.png",
   },
   openGraph: {
-    title: "CalSpaces — Your time, restructured.",
+    title: "CalSpaces",
     description:
-      "Voice-dump everything on your plate. CalSpaces intelligently organizes your calendar around your life.",
+      "Speak freely. Schedule intelligently. AI that turns your voice into a perfectly organized week.",
     url: "https://calspaces.com",
+    images: [{ url: "https://calspaces.com/og-image.png" }],
   },
 };
 
