@@ -65,9 +65,9 @@ export default function Hero() {
           >
             <span
               className="font-mono text-[10px] uppercase tracking-[0.15em] px-2 py-1 rounded-[2px] border"
-              style={{ color: "#1A3C2B", borderColor: "#1A3C2B" }}
+              style={{ color: "#8C1515", borderColor: "#8C1515" }}
             >
-              Now in Beta
+              Developed at Stanford
             </span>
           </motion.div>
 
