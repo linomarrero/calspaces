@@ -7,10 +7,11 @@ import { useState, useEffect, useRef } from "react";
 const headlineWords = "Your calendar, finally honest.".split(" ");
 
 const WAVEFORM_ONLY_MS = 1500;
-const TASK_TYPING_MS = 700;
+const TASK_TYPING_MS = 1800;
+const TASK_PAUSE_MS = 1200;
 const TASK_ANIMATE_MS = 300;
 const TASK_AFTER_MS = 600;
-const TASK_BLOCK_MS = TASK_TYPING_MS + TASK_ANIMATE_MS + TASK_AFTER_MS;
+const TASK_BLOCK_MS = TASK_TYPING_MS + TASK_PAUSE_MS + TASK_ANIMATE_MS + TASK_AFTER_MS;
 const HOLD_START_MS = WAVEFORM_ONLY_MS + 5 * TASK_BLOCK_MS;
 const HOLD_MS = 2000;
 const RESET_START_MS = HOLD_START_MS + HOLD_MS;
