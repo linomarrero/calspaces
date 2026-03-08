@@ -31,7 +31,7 @@ export default function Nav() {
           <img
             src="/calspaceslogofull.svg"
             alt="CalSpaces"
-            className="h-8 w-auto"
+            style={{ height: "32px", width: "auto" }}
           />
         </Link>
 
