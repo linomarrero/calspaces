@@ -2,6 +2,9 @@
   "name": "calspaces",
   "version": "0.1.0",
   "private": true,
+  "overrides": {
+    "rimraf": "^5.0.10"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",

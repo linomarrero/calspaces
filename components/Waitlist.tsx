@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { joinWaitlist, getWaitlistCount } from "@/lib/supabase";
 
 export default function Waitlist() {
   const [email, setEmail] = useState("");
@@ -10,7 +9,10 @@ export default function Waitlist() {
   const [count, setCount] = useState<number | null>(null);
 
   useEffect(() => {
-    getWaitlistCount().then(setCount);
+    fetch("/api/waitlist")
+      .then((res) => res.json())
+      .then((data) => setCount(data.count ?? 0))
+      .catch(() => setCount(0));
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -18,14 +20,19 @@ export default function Waitlist() {
     if (!email.trim()) return;
     setStatus("loading");
     setMessage("");
-    const { ok, error } = await joinWaitlist(email.trim());
-    if (ok) {
+    const res = await fetch("/api/waitlist", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: email.trim() }),
+    });
+    const data = await res.json();
+    if (data.ok) {
       setStatus("success");
       setEmail("");
       setCount((c) => (c !== null ? c + 1 : null));
     } else {
       setStatus("error");
-      setMessage(error ?? "Something went wrong.");
+      setMessage(data.error ?? "Something went wrong.");
     }
   }
 
