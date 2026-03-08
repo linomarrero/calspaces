@@ -6,21 +6,27 @@ import { useState, useEffect, useRef } from "react";
 
 const headlineWords = "Your calendar, finally honest.".split(" ");
 
-const CYCLE_MS = 8100;
-const RECORDING_MS = 1500;
-const PROCESSING_MS = 800;
-const TASKS_START_MS = 2300;
-const TASK_STAGGER_MS = 700;
-const HOLD_START_MS = 5500;
-const RESET_START_MS = 7500;
-const RESET_MS = 600;
+const WAVEFORM_ONLY_MS = 1500;
+const TASK_TYPING_MS = 700;
+const TASK_ANIMATE_MS = 300;
+const TASK_AFTER_MS = 600;
+const TASK_BLOCK_MS = TASK_TYPING_MS + TASK_ANIMATE_MS + TASK_AFTER_MS;
+const HOLD_START_MS = WAVEFORM_ONLY_MS + 5 * TASK_BLOCK_MS;
+const HOLD_MS = 2000;
+const RESET_START_MS = HOLD_START_MS + HOLD_MS;
+const RESET_ROW_STAGGER_MS = 150;
+const RESET_ROW_FADE_MS = 400;
+const RESET_PAUSE_MS = 2000;
+const CYCLE_MS = RESET_START_MS + 5 * RESET_ROW_STAGGER_MS + RESET_ROW_FADE_MS + RESET_PAUSE_MS;
+
+const TYPING_MS_PER_CHAR = 40;
 
 const PHONE_TASKS = [
-  { label: "9:00 — Review Bio", meta: "Mon · 90 min", accent: "#1A3C2B" },
-  { label: "10:30 — Chem report", meta: "Tue · 2 hrs", accent: "#1A3C2B" },
-  { label: "2:00 — Gym", meta: "Wed · 1 hr", accent: "#C8962A" },
-  { label: "4:00 — Café catch-up", meta: "Thu · 45 min", accent: "#7A8B7A" },
-  { label: "6:30 — Reply to emails", meta: "Fri · 30 min", accent: "#6B7280" },
+  { label: "9:00 — Review Bio", meta: "Mon · 90 min", tag: "FOCUS", accent: "#1A3C2B" },
+  { label: "10:30 — Chem report", meta: "Tue · 2 hrs", tag: "FOCUS", accent: "#1A3C2B" },
+  { label: "2:00 — Gym", meta: "Wed · 1 hr", tag: "HEALTH", accent: "#4A6741" },
+  { label: "4:00 — Café catch-up", meta: "Thu · 45 min", tag: "LEISURE", accent: "#C8962A" },
+  { label: "6:30 — Reply to emails", meta: "Fri · 30 min", tag: "ADMIN", accent: "#555555" },
 ];
 
 export default function Hero() {
@@ -89,9 +95,6 @@ export default function Hero() {
           <div className="relative w-[280px] sm:w-[320px]">
             <div className="aspect-[9/19] rounded-[28px] bg-near-black/95 shadow-2xl border border-foreground/10 overflow-hidden">
               <div className="p-5 h-full flex flex-col">
-                <div className="font-mono text-[10px] text-white/60 uppercase tracking-wider mb-3">
-                  Voice dump
-                </div>
                 <PhoneScreenContent />
               </div>
             </div>
@@ -116,7 +119,7 @@ function PhoneScreenContent() {
         startRef.current = now;
         e = 0;
       }
-      if (now - lastSet > 50) {
+      if (now - lastSet > 40) {
         lastSet = now;
         setElapsed(e);
       }
@@ -126,108 +129,175 @@ function PhoneScreenContent() {
     return () => cancelAnimationFrame(rafRef.current);
   }, []);
 
-  const isRecording = elapsed < RECORDING_MS;
-  const isProcessing = elapsed >= RECORDING_MS && elapsed < TASKS_START_MS;
-  const isTasks = elapsed >= TASKS_START_MS && elapsed < HOLD_START_MS;
+  const isWaveformOnly = elapsed < WAVEFORM_ONLY_MS;
   const isHold = elapsed >= HOLD_START_MS && elapsed < RESET_START_MS;
   const isReset = elapsed >= RESET_START_MS;
 
-  const waveformOpacity = isRecording ? 1 : isProcessing ? 1 - (elapsed - RECORDING_MS) / PROCESSING_MS : isReset ? Math.min(1, (elapsed - RESET_START_MS) / RESET_MS) : 0;
-  const listOpacity = isReset ? Math.max(0, 1 - (elapsed - RESET_START_MS) / RESET_MS) : isTasks || isHold ? 1 : 0;
+  const blockProgress = elapsed >= WAVEFORM_ONLY_MS ? (elapsed - WAVEFORM_ONLY_MS) % TASK_BLOCK_MS : 0;
+  const rawTypingIndex = elapsed >= WAVEFORM_ONLY_MS && elapsed < HOLD_START_MS ? Math.floor((elapsed - WAVEFORM_ONLY_MS) / TASK_BLOCK_MS) : -1;
+  const isInTypingWindow = blockProgress < TASK_TYPING_MS;
+  const currentTypingTaskIndex = rawTypingIndex >= 0 && rawTypingIndex < 5 && isInTypingWindow ? rawTypingIndex : -1;
 
-  const visibleTaskCount = isTasks || isHold
-    ? Math.min(5, Math.floor((elapsed - TASKS_START_MS) / TASK_STAGGER_MS) + 1)
-    : 0;
-  const showScheduleSaved = isHold && elapsed >= HOLD_START_MS + 400;
+  const taskTypingStartMs = WAVEFORM_ONLY_MS + rawTypingIndex * TASK_BLOCK_MS;
+  const typedChars =
+    currentTypingTaskIndex >= 0 && currentTypingTaskIndex < PHONE_TASKS.length
+      ? Math.min(
+          PHONE_TASKS[currentTypingTaskIndex].label.length,
+          Math.floor((elapsed - taskTypingStartMs) / TYPING_MS_PER_CHAR)
+        )
+      : 0;
+
+  const taskAppearTime = (i: number) => WAVEFORM_ONLY_MS + TASK_TYPING_MS + i * TASK_BLOCK_MS;
+  const visibleTaskCount =
+    elapsed >= HOLD_START_MS
+      ? 5
+      : PHONE_TASKS.filter((_, i) => elapsed >= taskAppearTime(i)).length;
+
+  const showCheckmark =
+    elapsed >= WAVEFORM_ONLY_MS &&
+    elapsed < HOLD_START_MS &&
+    blockProgress >= TASK_TYPING_MS &&
+    blockProgress < TASK_TYPING_MS + 400;
+
+  const waveformOpacity = isWaveformOnly
+    ? 1
+    : isReset
+      ? 0.4 + 0.6 * Math.min(1, (elapsed - RESET_START_MS) / 600)
+      : 0.4;
+
+  const showScheduleReady = isHold && elapsed >= HOLD_START_MS + 400;
+
+  const rowOpacity = (i: number) => {
+    if (!isReset) return 1;
+    const rowFadeStart = RESET_START_MS + i * RESET_ROW_STAGGER_MS;
+    const rowFadeEnd = rowFadeStart + RESET_ROW_FADE_MS;
+    if (elapsed < rowFadeStart) return 1;
+    if (elapsed >= rowFadeEnd) return 0;
+    return 1 - (elapsed - rowFadeStart) / RESET_ROW_FADE_MS;
+  };
+
+  const scheduleReadyFadeStart = RESET_START_MS + 5 * RESET_ROW_STAGGER_MS;
+  const scheduleReadyOpacity = isReset
+    ? elapsed < scheduleReadyFadeStart
+      ? 1
+      : Math.max(0, 1 - (elapsed - scheduleReadyFadeStart) / RESET_ROW_FADE_MS)
+    : showScheduleReady
+      ? 1
+      : 0;
+
+  const zone2Text =
+    currentTypingTaskIndex < 0
+      ? ""
+      : showCheckmark
+        ? ""
+        : PHONE_TASKS[currentTypingTaskIndex].label.slice(0, typedChars);
+
+  const showCursor =
+    isWaveformOnly ||
+    (currentTypingTaskIndex >= 0 &&
+      !showCheckmark &&
+      typedChars < PHONE_TASKS[currentTypingTaskIndex].label.length);
 
   return (
-    <>
-      <div className="flex-1 min-h-0 rounded-lg bg-white/5 border border-white/10 p-3 flex flex-col justify-end overflow-hidden">
+    <div className="flex-1 min-h-0 flex flex-col">
+      {/* Zone 1 — Task list ~65% */}
+      <div className="flex-[0.65] min-h-0 flex flex-col overflow-hidden">
+        <div className="flex items-center justify-between px-1 pt-0.5 pb-1 shrink-0">
+          <span className="font-mono text-[10px] text-white/35 uppercase tracking-widest">
+            YOUR WEEK
+          </span>
+          <span className="font-mono text-[10px] text-white/35">···</span>
+        </div>
+        <div className="flex-1 min-h-0 overflow-auto">
+          {PHONE_TASKS.slice(0, visibleTaskCount).map((task, i) => (
+            <motion.div
+              key={task.label}
+              className="flex items-center gap-2 border-b border-white/5"
+              style={{ minHeight: 44, padding: "10px 12px" }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: rowOpacity(i), y: 0 }}
+              transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+            >
+              <motion.div
+                className="w-[2.5px] self-stretch rounded-full shrink-0"
+                style={{
+                  backgroundColor: task.accent,
+                  transformOrigin: "top",
+                }}
+                initial={{ scaleY: 0 }}
+                animate={{ scaleY: 1 }}
+                transition={{ duration: 0.25 }}
+              />
+              <div className="min-w-0 flex-1">
+                <p className="font-body text-[13px] font-bold text-white/90 truncate">
+                  {task.label}
+                </p>
+                <p className="font-mono text-[10px] text-white/30">{task.meta}</p>
+              </div>
+              <span
+                className="font-mono text-[9px] uppercase shrink-0 border rounded-[2px] px-1.5 py-0.5"
+                style={{ borderColor: task.accent, color: task.accent }}
+              >
+                {task.tag}
+              </span>
+            </motion.div>
+          ))}
+          {visibleTaskCount >= 5 && (showScheduleReady || isReset) && (
+            <motion.p
+              className="font-mono text-[10px] mt-2 px-2"
+              style={{
+                color: "#1A3C2B",
+                opacity: scheduleReadyOpacity,
+              }}
+              initial={false}
+              transition={{ duration: 0.4 }}
+            >
+              Schedule ready ✓
+            </motion.p>
+          )}
+        </div>
+      </div>
+
+      {/* Divider */}
+      <div className="h-px shrink-0 bg-white/[0.08]" />
+
+      {/* Zone 2 — Voice input ~35% */}
+      <div className="flex-[0.35] min-h-0 flex flex-col justify-end py-3">
+        <div className="font-mono text-[10px] text-white/60 uppercase tracking-wider mb-2">
+          Voice dump
+        </div>
         <motion.div
-          className="flex items-end w-full"
-          style={{ opacity: waveformOpacity, minHeight: 32 }}
+          className="flex items-end w-full mb-2"
+          style={{ opacity: waveformOpacity }}
           transition={{ duration: 0.2 }}
         >
           <Waveform />
         </motion.div>
-
-        <AnimatePresence mode="wait">
-          {isRecording && (
-            <motion.p
-              key="listening"
-              className="font-mono text-[10px] text-white/50 mt-2 animate-pulse"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              Listening...
-            </motion.p>
+        <div className="font-mono text-[11px] text-white/70 min-h-[1.25rem] flex items-center">
+          {zone2Text}
+          {showCursor && (
+            <span className="animate-cursor-blink inline-block ml-0.5 text-white/70">
+              ▋
+            </span>
           )}
-          {isProcessing && (
-            <motion.div
-              key="organizing"
-              className="mt-2 space-y-2"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              <p className="font-mono text-[10px] text-white/50">Organizing your week...</p>
-              <div className="h-px bg-white/10 rounded-full overflow-hidden">
-                <motion.div
-                  className="h-full bg-deep-forest rounded-full"
-                  initial={{ width: "0%" }}
-                  animate={{ width: "100%" }}
-                  transition={{ duration: 0.6, ease: "easeOut" }}
-                />
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      <motion.div
-        className="mt-4 min-h-0 overflow-hidden"
-        style={{ opacity: listOpacity }}
-        transition={{ duration: 0.25 }}
-      >
-        {visibleTaskCount > 0 && (
-          <div className="space-y-0">
-            {PHONE_TASKS.slice(0, visibleTaskCount).map((task) => (
-              <motion.div
-                key={task.label}
-                className="flex items-center gap-2 py-1.5 px-2 border-b border-white/5 last:border-0"
-                style={{ minHeight: 36 }}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
-              >
-                <div
-                  className="w-0.5 self-stretch rounded-full shrink-0"
-                  style={{ backgroundColor: task.accent, minHeight: 28 }}
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="font-body text-[12px] font-semibold text-white/90 truncate">
-                    {task.label}
-                  </p>
-                  <p className="font-mono text-[10px] text-white/35">{task.meta}</p>
-                </div>
-              </motion.div>
-            ))}
-            {showScheduleSaved && (
-              <motion.p
-                className="font-mono text-[10px] text-emerald-400/90 mt-2"
+          <AnimatePresence mode="wait">
+            {showCheckmark && (
+              <motion.span
+                key="added"
+                className="text-[10px]"
+                style={{ color: "#1A3C2B" }}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ duration: 0.3 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
               >
-                Schedule saved ✓
-              </motion.p>
+                ✓ added
+              </motion.span>
             )}
-          </div>
-        )}
-      </motion.div>
-    </>
+          </AnimatePresence>
+        </div>
+      </div>
+    </div>
   );
 }
 
