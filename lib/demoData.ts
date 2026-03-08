@@ -104,7 +104,7 @@ const PRESET_SCHEDULES: Record<string, DemoTask[]> = {
     { id: "t-1", title: "Focus Block — Design Work", start: "09:00", end: "13:00", day: "Monday", category: "FOCUS", estimatedMinutes: 240 },
     { id: "t-2", title: "Client Call", start: "14:00", end: "15:00", day: "Tuesday", category: "ADMIN", estimatedMinutes: 60 },
     { id: "t-3", title: "Focus Block — Revisions", start: "09:00", end: "13:00", day: "Wednesday", category: "FOCUS", estimatedMinutes: 240 },
-    { id: "t-4", title: "Coffee — Referral", start: "10:00", end: "10:45", day: "Wednesday", category: "LEISURE", estimatedMinutes: 45 },
+    { id: "t-4", title: "Coffee — Referral", start: "08:00", end: "08:45", day: "Wednesday", category: "LEISURE", estimatedMinutes: 45 },
     { id: "t-5", title: "Send Invoice", start: "11:00", end: "11:30", day: "Thursday", category: "ADMIN", estimatedMinutes: 30 },
     { id: "t-6", title: "Final Delivery", start: "09:00", end: "13:00", day: "Friday", category: "DEADLINE", estimatedMinutes: 240 },
   ],
