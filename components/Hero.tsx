@@ -51,7 +51,7 @@ const PHONE_TASKS = [
 // ── Hero ──────────────────────────────────────────────────────
 export default function Hero() {
   return (
-    <section className="relative min-h-[90vh] flex items-center pt-20 pb-16 px-5 md:px-8 overflow-hidden grain">
+    <section className="relative min-h-[90vh] flex items-center pt-20 pb-16 px-5 md:px-8 overflow-x-hidden grain">
       <div className="mx-auto max-w-7xl w-full grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
 
         {/* Left column */}
