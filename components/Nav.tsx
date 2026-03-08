@@ -27,11 +27,12 @@ export default function Nav() {
       }`}
     >
       <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-5 md:px-8">
-        <Link
-          href="/"
-          className="font-display text-xl font-semibold tracking-display text-near-black"
-        >
-          CalSpaces
+        <Link href="/">
+          <img
+            src="/calspaceslogofull.svg"
+            alt="CalSpaces"
+            className="h-8 w-auto"
+          />
         </Link>
 
         <div className="hidden md:flex items-center gap-10">
