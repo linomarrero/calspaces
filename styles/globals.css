@@ -16,6 +16,10 @@ body {
   background: var(--background);
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 /* Subtle halftone/grain texture - use as overlay where needed */
 .grain {
   position: relative;
