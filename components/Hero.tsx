@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useState, useEffect, useRef } from "react";
 
 const headlineWords = "Your calendar, finally honest.".split(" ");
@@ -19,7 +19,15 @@ const RESET_ROW_FADE_MS = 400;
 const RESET_PAUSE_MS = 2000;
 const CYCLE_MS = RESET_START_MS + 5 * RESET_ROW_STAGGER_MS + RESET_ROW_FADE_MS + RESET_PAUSE_MS;
 
-const TYPING_MS_PER_CHAR = 40;
+const TRANSCRIPT_MS_PER_CHAR = 18;
+
+const TRANSCRIPT_LINES = [
+  "okay so i have a bio exam monday morning, need like an hour and a half to review...",
+  "and a chem lab report due tuesday, that's probably two hours...",
+  "i want to hit the gym wednesday morning too, just an hour",
+  "oh and café catch-up with Sara thursday afternoon, maybe 45 minutes",
+  "and i really need to reply to those emails friday morning, half an hour tops",
+];
 
 const PHONE_TASKS = [
   { label: "9:00 — Review Bio", meta: "Mon · 90 min", tag: "FOCUS", accent: "#2D6B47" },
@@ -109,6 +117,7 @@ function PhoneScreenContent() {
   const [elapsed, setElapsed] = useState(0);
   const startRef = useRef<number>(0);
   const rafRef = useRef<number>(0);
+  const transcriptEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     startRef.current = performance.now();
@@ -138,26 +147,11 @@ function PhoneScreenContent() {
   const isInTypingWindow = blockProgress < TASK_TYPING_MS;
   const currentTypingTaskIndex = rawTypingIndex >= 0 && rawTypingIndex < 5 && isInTypingWindow ? rawTypingIndex : -1;
 
-  const taskTypingStartMs = WAVEFORM_ONLY_MS + rawTypingIndex * TASK_BLOCK_MS;
-  const typedChars =
-    currentTypingTaskIndex >= 0 && currentTypingTaskIndex < PHONE_TASKS.length
-      ? Math.min(
-          PHONE_TASKS[currentTypingTaskIndex].label.length,
-          Math.floor((elapsed - taskTypingStartMs) / TYPING_MS_PER_CHAR)
-        )
-      : 0;
-
   const taskAppearTime = (i: number) => WAVEFORM_ONLY_MS + TASK_TYPING_MS + i * TASK_BLOCK_MS;
   const visibleTaskCount =
     elapsed >= HOLD_START_MS
       ? 5
       : PHONE_TASKS.filter((_, i) => elapsed >= taskAppearTime(i)).length;
-
-  const showCheckmark =
-    elapsed >= WAVEFORM_ONLY_MS &&
-    elapsed < HOLD_START_MS &&
-    blockProgress >= TASK_TYPING_MS &&
-    blockProgress < TASK_TYPING_MS + 400;
 
   const waveformOpacity = isWaveformOnly
     ? 1
@@ -185,18 +179,39 @@ function PhoneScreenContent() {
       ? 1
       : 0;
 
-  const zone2Text =
-    currentTypingTaskIndex < 0
-      ? ""
-      : showCheckmark
-        ? ""
-        : PHONE_TASKS[currentTypingTaskIndex].label.slice(0, typedChars);
+  const blockStart = (i: number) => WAVEFORM_ONLY_MS + i * TASK_BLOCK_MS;
+  const transcriptCharsForLine = (i: number) => {
+    if (elapsed < blockStart(i)) return 0;
+    const line = TRANSCRIPT_LINES[i];
+    if (!line) return 0;
+    return Math.min(line.length, Math.floor((elapsed - blockStart(i)) / TRANSCRIPT_MS_PER_CHAR));
+  };
 
-  const showCursor =
-    isWaveformOnly ||
-    (currentTypingTaskIndex >= 0 &&
-      !showCheckmark &&
-      typedChars < PHONE_TASKS[currentTypingTaskIndex].label.length);
+  const isTypingTranscript =
+    currentTypingTaskIndex >= 0 &&
+    currentTypingTaskIndex < TRANSCRIPT_LINES.length &&
+    transcriptCharsForLine(currentTypingTaskIndex) < TRANSCRIPT_LINES[currentTypingTaskIndex].length;
+
+  const transcriptOpacity = isReset
+    ? Math.max(0, 1 - (elapsed - RESET_START_MS) / RESET_ROW_FADE_MS)
+    : isHold
+      ? 0.3
+      : 1;
+
+  const hasTranscriptContent = elapsed >= WAVEFORM_ONLY_MS && (isHold || isReset || currentTypingTaskIndex >= 0 || visibleTaskCount > 0);
+
+  const totalTranscriptChars = TRANSCRIPT_LINES.reduce(
+    (sum, _, i) => sum + transcriptCharsForLine(i),
+    0
+  );
+  const prevTotalRef = useRef(0);
+  useEffect(() => {
+    if (totalTranscriptChars > prevTotalRef.current) {
+      prevTotalRef.current = totalTranscriptChars;
+      transcriptEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    }
+    if (elapsed < 100) prevTotalRef.current = 0;
+  }, [totalTranscriptChars, elapsed]);
 
   return (
     <div className="flex-1 min-h-0 flex flex-col">
@@ -291,44 +306,50 @@ function PhoneScreenContent() {
           style={{ opacity: waveformOpacity, minHeight: 32 }}
           transition={{ duration: 0.2 }}
         >
-          <Waveform />
+          <Waveform active={isTypingTranscript} />
         </motion.div>
         <div
-          className="font-mono text-white/80 min-h-[2.5rem] flex items-center flex-wrap"
-          style={{ fontSize: 12 }}
+          className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden"
+          style={{ opacity: transcriptOpacity }}
         >
-          {zone2Text}
-          {showCursor && (
-            <span className="animate-cursor-blink inline-block ml-0.5 text-white/80">
-              ▋
-            </span>
+          {hasTranscriptContent && (
+            <div
+              className="font-mono text-white/55"
+              style={{ fontSize: 10, lineHeight: 1.6 }}
+            >
+              {TRANSCRIPT_LINES.map((line, i) => {
+                const chars = transcriptCharsForLine(i);
+                if (chars === 0) return null;
+                const text = line.slice(0, chars);
+                const isCurrent = i === currentTypingTaskIndex && chars < line.length;
+                return (
+                  <div key={i} className="mb-0.5">
+                    {text}
+                    {isCurrent && (
+                      <span className="animate-cursor-blink inline-block ml-0.5 align-baseline">
+                        ▋
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+              <div ref={transcriptEndRef} />
+            </div>
           )}
-          <AnimatePresence mode="wait">
-            {showCheckmark && (
-              <motion.span
-                key="added"
-                className="font-semibold"
-                style={{ color: "#4CAF80", fontSize: 11 }}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                ✓ added
-              </motion.span>
-            )}
-          </AnimatePresence>
         </div>
       </div>
     </div>
   );
 }
 
-function Waveform() {
+function Waveform({ active = false }: { active?: boolean }) {
   const ratios = [0.3, 0.6, 0.45, 0.8, 0.5, 0.7, 0.4, 0.65, 0.55, 0.75, 0.5, 0.6];
   const minH = 8;
   const maxH = 32;
-  const toPx = (r: number) => minH + (maxH - minH) * r;
+  const amplitude = active ? 1.25 : 1;
+  const toPx = (r: number) => minH + (maxH - minH) * Math.min(1, r * amplitude);
+  const duration = active ? 0.45 : 0.8;
+  const delay = active ? 0.02 : 0.05;
   return (
     <div
       className="flex items-end w-full"
@@ -349,7 +370,7 @@ function Waveform() {
               `${toPx(r)}px`,
             ],
           }}
-          transition={{ duration: 0.8, repeat: Infinity, delay: idx * 0.05 }}
+          transition={{ duration, repeat: Infinity, delay: idx * delay }}
         />
       ))}
     </div>
