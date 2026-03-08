@@ -27,6 +27,9 @@ export const metadata: Metadata = {
   title: "CalSpaces — Your time, restructured.",
   description:
     "Voice-dump everything on your plate. CalSpaces intelligently organizes your calendar around your life, learns how you work, and optimizes your schedule over time.",
+  icons: {
+    icon: "/favicon.png",
+  },
   openGraph: {
     title: "CalSpaces — Your time, restructured.",
     description:
