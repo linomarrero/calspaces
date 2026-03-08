@@ -1,36 +1,72 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CalSpaces
 
-## Getting Started
+Marketing site for **CalSpaces** — your time, restructured.
 
-First, run the development server:
+- **Stack:** Next.js 14 (App Router), TypeScript, Tailwind CSS, Framer Motion, Supabase
+- **Deploy:** Vercel
+
+## Run locally
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Supabase setup
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Create a project at [supabase.com](https://supabase.com).
 
-## Learn More
+2. In the SQL editor, run:
 
-To learn more about Next.js, take a look at the following resources:
+```sql
+create table waitlist (
+  id uuid primary key default gen_random_uuid(),
+  email text unique not null,
+  created_at timestamptz default now()
+);
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+alter table waitlist enable row level security;
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+create policy "Allow anonymous insert"
+  on waitlist for insert
+  to anon
+  with check (true);
+
+create policy "Allow anonymous count"
+  on waitlist for select
+  to anon
+  using (true);
+```
+
+3. In **Settings → API**: copy **Project URL** and **anon public** key.
+
+4. Create `.env.local`:
+
+```
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+```
 
 ## Deploy on Vercel
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. Push the repo to GitHub and import the project in [Vercel](https://vercel.com).
+2. Add the same env vars in **Project → Settings → Environment Variables**:  
+   `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+3. Deploy. The site will build and run without Supabase if env vars are missing (waitlist count shows 0, form shows an error on submit).
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Google Calendar integration
+
+The product is designed to integrate with **Google Calendar**. When you build the CalSpaces app (backend or client):
+
+1. **Google Cloud:** Create a project and enable the [Google Calendar API](https://developers.google.com/calendar/api/guides/overview).
+2. **OAuth 2.0:** Use the Calendar API with OAuth consent so users can connect their Google account and grant read/write access to their calendars.
+3. **Scopes:** Typical scopes for two-way sync: `https://www.googleapis.com/auth/calendar`, `https://www.googleapis.com/auth/calendar.events`.
+4. **Env (for the app):** Add `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and optionally `GOOGLE_CALENDAR_REDIRECT_URI` to your app’s environment (not needed for this marketing site).
+
+This repo is the marketing site only; the actual sync logic lives in your app. The site copy and features section already position CalSpaces as Google Calendar–integratable.
+
+## License
+
+Proprietary.
