@@ -5,10 +5,10 @@ import { motion } from "framer-motion";
 
 // ── Video config: set your video here ─────────────────────────────────────
 // YouTube: use the video ID from the URL (e.g. https://youtube.com/watch?v=VIDEO_ID → VIDEO_ID)
-const YOUTUBE_VIDEO_ID = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"; // ← Replace with your YouTube video ID
+const YOUTUBE_VIDEO_ID = ""; // ← Replace with your YouTube video ID
 // For a self-hosted .mp4: set USE_MP4 = true and VIDEO_MP4_PATH = "/your-video.mp4" (file in /public)
-const USE_MP4 = false;
-const VIDEO_MP4_PATH = "/demo.mp4";
+const USE_MP4 = true;
+const VIDEO_MP4_PATH = "demovideo123.mp4";
 
 export default function VideoSection() {
   const [playing, setPlaying] = useState(false);
