@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 
 const items = [
-  { value: "", label: "waitlist open now!" },
+  { value: "Waitlist", label: "open now!" },
   { value: "3.1 hrs", label: "reclaimed weekly (avg)" },
   { value: "Google Calendar", label: "native sync" },
   { value: "< 10 sec", label: "voice input" },
