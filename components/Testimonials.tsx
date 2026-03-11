@@ -5,18 +5,18 @@ import { motion } from "framer-motion";
 const testimonials = [
   {
     quote:
-      "I stopped missing my gym sessions because it actually accounts for how long I take to get ready. Small thing. Big difference.",
-    attribution: "Maya T., grad student",
+      "I really wish I had something like Calspaces to organize my day and plan around my classes",
+    attribution: "Alex L., grad student",
   },
   {
     quote:
       "Every productivity app I've tried assumed I'd stick to the plan. CalSpaces assumes I won't.",
-    attribution: "James R., freelance dev",
+    attribution: "Samuel R., sales manager",
   },
   {
     quote:
       "The voice dump alone is worth it. I was spending 20 minutes every morning figuring out what to do first.",
-    attribution: "Priya N., product manager",
+    attribution: "James W., software dev.",
   },
 ];
 
